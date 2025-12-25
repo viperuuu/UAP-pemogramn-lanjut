@@ -26,97 +26,91 @@ public class PesertaFrame extends JFrame {
         setLayout(new BorderLayout());
         getContentPane().setBackground(Theme.BG);
 
-        // ================= HEADER =================
         JLabel title = new JLabel("Kelola Data Peserta");
         title.setFont(Theme.TITLE);
         title.setBorder(BorderFactory.createEmptyBorder(20, 30, 10, 30));
         add(title, BorderLayout.NORTH);
 
-        // ================= TABEL =================
         model = new DefaultTableModel(
                 new String[]{"ID", "Nama Peserta", "Email"}, 0
         );
+
         JTable table = new JTable(model);
-        table.setRowHeight(28);
-        table.setFont(Theme.NORMAL);
-        table.getTableHeader().setFont(Theme.NORMAL);
+        table.setRowHeight(26);
+        JScrollPane scroll = new JScrollPane(table);
 
-        JScrollPane tablePane = new JScrollPane(table);
-        tablePane.setBorder(BorderFactory.createEmptyBorder());
-
-        // ================= FORM CARD =================
-        JPanel card = new JPanel();
-        card.setLayout(new GridBagLayout());
+        JPanel card = new JPanel(new GridBagLayout());
         card.setBackground(Theme.CARD);
         card.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(6, 6, 6, 6);
         c.fill = GridBagConstraints.HORIZONTAL;
-        c.insets = new Insets(8, 8, 8, 8);
 
-        JTextField tfId = modernField();
-        JTextField tfNama = modernField();
-        JTextField tfEmail = modernField();
+        JTextField tfId = field();
+        JTextField tfNama = field();
+        JTextField tfEmail = field();
 
         addField(card, c, 0, "ID Peserta", tfId);
         addField(card, c, 1, "Nama Peserta", tfNama);
         addField(card, c, 2, "Email", tfEmail);
 
-        // ================= BUTTON =================
-        JButton btnTambah = primaryButton();
-        JButton btnHapus = dangerButton();
-        JButton btnKembali = secondaryButton();
+        JButton btnTambah = primary("Tambah");
+        JButton btnEdit = primary("Edit");
+        JButton btnHapus = danger("Hapus");
+        JButton btnKembali = secondary("Kembali");
 
         c.gridy = 3;
-        c.gridx = 0;
-        card.add(btnTambah, c);
 
-        c.gridx = 1;
-        card.add(btnHapus, c);
+        c.gridx = 0; card.add(btnTambah, c);
+        c.gridx = 1; card.add(btnEdit, c);
+        c.gridx = 2; card.add(btnHapus, c);
+        c.gridx = 3; card.add(btnKembali, c);
 
-        c.gridx = 2;
-        card.add(btnKembali, c);
-
-        // ================= LAYOUT TENGAH =================
         JPanel center = new JPanel(new BorderLayout(20, 20));
         center.setBackground(Theme.BG);
         center.setBorder(BorderFactory.createEmptyBorder(20, 30, 30, 30));
-        center.add(tablePane, BorderLayout.CENTER);
+        center.add(scroll, BorderLayout.CENTER);
         center.add(card, BorderLayout.SOUTH);
 
         add(center, BorderLayout.CENTER);
 
-        // ================= ACTION =================
+        // ========== AKSI ==========
+
         btnTambah.addActionListener(e -> {
-            try {
-                if (!tfEmail.getText().contains("@"))
-                    throw new Exception("Email tidak valid");
+            Peserta p = new Peserta(
+                    tfId.getText(),
+                    tfNama.getText(),
+                    tfEmail.getText()
+            );
 
-                Peserta p = new Peserta(
-                        tfId.getText(),
-                        tfNama.getText(),
-                        tfEmail.getText()
-                );
+            model.addRow(p.toTableRow());
+            fileData.add(p.toCSV());
+            FileUtil.writeCSV(filePath, fileData);
 
-                model.addRow(p.toTableRow());
-                fileData.add(p.toCSV());
-                FileUtil.writeCSV(filePath, fileData);
+            tfId.setText("");
+            tfNama.setText("");
+            tfEmail.setText("");
+        });
 
-                tfId.setText("");
-                tfNama.setText("");
-                tfEmail.setText("");
+        btnEdit.addActionListener(e -> {
+            int r = table.getSelectedRow();
+            if (r == -1) return;
 
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, ex.getMessage());
-            }
+            model.setValueAt(tfId.getText(), r, 0);
+            model.setValueAt(tfNama.getText(), r, 1);
+            model.setValueAt(tfEmail.getText(), r, 2);
+
+            fileData.set(r, tfId.getText() + "," + tfNama.getText() + "," + tfEmail.getText());
+            FileUtil.writeCSV(filePath, fileData);
         });
 
         btnHapus.addActionListener(e -> {
-            int row = table.getSelectedRow();
-            if (row == -1) return;
+            int r = table.getSelectedRow();
+            if (r == -1) return;
 
-            model.removeRow(row);
-            fileData.remove(row);
+            model.removeRow(r);
+            fileData.remove(r);
             FileUtil.writeCSV(filePath, fileData);
         });
 
@@ -125,51 +119,48 @@ public class PesertaFrame extends JFrame {
             dispose();
         });
 
+        table.getSelectionModel().addListSelectionListener(e -> {
+            int r = table.getSelectedRow();
+            if (r != -1) {
+                tfId.setText(model.getValueAt(r, 0).toString());
+                tfNama.setText(model.getValueAt(r, 1).toString());
+                tfEmail.setText(model.getValueAt(r, 2).toString());
+            }
+        });
+
         loadData();
         setVisible(true);
     }
 
-    // ================= HELPER =================
-
-    private JTextField modernField() {
+    private JTextField field() {
         JTextField tf = new JTextField();
-        tf.setFont(Theme.NORMAL);
-        tf.setPreferredSize(new Dimension(200, 36));
+        tf.setPreferredSize(new Dimension(200, 34));
         return tf;
     }
 
-    private void addField(JPanel panel, GridBagConstraints c, int y,
-                          String label, JTextField field) {
-        c.gridy = y;
-        c.gridx = 0;
-        panel.add(new JLabel(label), c);
-
-        c.gridx = 1;
-        c.gridwidth = 2;
-        panel.add(field, c);
+    private void addField(JPanel p, GridBagConstraints c, int y, String l, JTextField f) {
+        c.gridy = y; c.gridx = 0; p.add(new JLabel(l), c);
+        c.gridx = 1; c.gridwidth = 3; p.add(f, c);
         c.gridwidth = 1;
     }
 
-    private JButton primaryButton() {
-        JButton b = new JButton("Tambah");
+    private JButton primary(String t) {
+        JButton b = new JButton(t);
         b.setBackground(new Color(37, 99, 235));
         b.setForeground(Color.WHITE);
-        b.setFocusPainted(false);
         return b;
     }
 
-    private JButton dangerButton() {
-        JButton b = new JButton("Hapus");
+    private JButton danger(String t) {
+        JButton b = new JButton(t);
         b.setBackground(new Color(220, 38, 38));
         b.setForeground(Color.WHITE);
-        b.setFocusPainted(false);
         return b;
     }
 
-    private JButton secondaryButton() {
-        JButton b = new JButton("Kembali");
+    private JButton secondary(String t) {
+        JButton b = new JButton(t);
         b.setBackground(new Color(203, 213, 225));
-        b.setFocusPainted(false);
         return b;
     }
 

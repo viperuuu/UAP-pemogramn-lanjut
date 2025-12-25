@@ -33,51 +33,52 @@ public class KehadiranFrame extends JFrame {
         model = new DefaultTableModel(
                 new String[]{"ID Peserta", "Nama", "Event", "Status"}, 0
         );
-        JTable table = new JTable(model);
-        table.setRowHeight(28);
 
-        JScrollPane tablePane = new JScrollPane(table);
+        JTable table = new JTable(model);
+        table.setRowHeight(26);
+
+        JScrollPane scroll = new JScrollPane(table);
 
         JPanel card = new JPanel(new GridBagLayout());
         card.setBackground(Theme.CARD);
         card.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(8, 8, 8, 8);
+        c.insets = new Insets(6, 6, 6, 6);
         c.fill = GridBagConstraints.HORIZONTAL;
 
         JTextField tfId = field();
         JTextField tfNama = field();
         JTextField tfEvent = field();
-        JComboBox<String> cbStatus = new JComboBox<>(new String[]{"Hadir", "Tidak Hadir"});
+        JComboBox<String> cbStatus = new JComboBox<>(new String[]{"Hadir","Tidak Hadir"});
 
         addField(card, c, 0, "ID Peserta", tfId);
-        addField(card, c, 1, "Nama Peserta", tfNama);
-        addField(card, c, 2, "Nama Event", tfEvent);
+        addField(card, c, 1, "Nama", tfNama);
+        addField(card, c, 2, "Event", tfEvent);
 
-        c.gridy = 3; c.gridx = 0;
-        card.add(new JLabel("Status"), c);
-        c.gridx = 1; c.gridwidth = 2;
-        card.add(cbStatus, c);
-        c.gridwidth = 1;
+        c.gridy = 3; c.gridx = 0; card.add(new JLabel("Status"), c);
+        c.gridx = 1; c.gridwidth = 3; card.add(cbStatus, c); c.gridwidth = 1;
 
-        JButton btnTambah = primary();
-        JButton btnKembali = secondary();
+        JButton btnSimpan = primary("Tambah");
+        JButton btnEdit = primary("Edit");
+        JButton btnHapus = danger("Hapus");
+        JButton btnKembali = secondary("Kembali");
 
-        c.gridy = 4; c.gridx = 0;
-        card.add(btnTambah, c);
-        c.gridx = 1;
-        card.add(btnKembali, c);
+        c.gridy = 4;
+        c.gridx = 0; card.add(btnSimpan, c);
+        c.gridx = 1; card.add(btnEdit, c);
+        c.gridx = 2; card.add(btnHapus, c);
+        c.gridx = 3; card.add(btnKembali, c);
 
         JPanel center = new JPanel(new BorderLayout(20, 20));
         center.setBackground(Theme.BG);
         center.setBorder(BorderFactory.createEmptyBorder(20, 30, 30, 30));
-        center.add(tablePane, BorderLayout.CENTER);
+        center.add(scroll, BorderLayout.CENTER);
         center.add(card, BorderLayout.SOUTH);
 
         add(center, BorderLayout.CENTER);
 
-        btnTambah.addActionListener(e -> {
+        btnSimpan.addActionListener(e -> {
             String row = tfId.getText() + "," +
                     tfNama.getText() + "," +
                     tfEvent.getText() + "," +
@@ -86,15 +87,48 @@ public class KehadiranFrame extends JFrame {
             model.addRow(row.split(","));
             fileData.add(row);
             FileUtil.writeCSV(filePath, fileData);
+        });
 
-            tfId.setText("");
-            tfNama.setText("");
-            tfEvent.setText("");
+        btnEdit.addActionListener(e -> {
+            int r = table.getSelectedRow();
+            if (r == -1) return;
+
+            model.setValueAt(tfId.getText(), r, 0);
+            model.setValueAt(tfNama.getText(), r, 1);
+            model.setValueAt(tfEvent.getText(), r, 2);
+            model.setValueAt(cbStatus.getSelectedItem(), r, 3);
+
+            fileData.set(r,
+                    tfId.getText() + "," +
+                            tfNama.getText() + "," +
+                            tfEvent.getText() + "," +
+                            cbStatus.getSelectedItem());
+
+            FileUtil.writeCSV(filePath, fileData);
+        });
+
+        btnHapus.addActionListener(e -> {
+            int r = table.getSelectedRow();
+            if (r == -1) return;
+
+            model.removeRow(r);
+            fileData.remove(r);
+            FileUtil.writeCSV(filePath, fileData);
         });
 
         btnKembali.addActionListener(e -> {
             dashboard.setVisible(true);
             dispose();
+        });
+
+        table.getSelectionModel().addListSelectionListener(e -> {
+            int r = table.getSelectedRow();
+            if (r != -1) {
+                tfId.setText(model.getValueAt(r, 0).toString());
+                tfNama.setText(model.getValueAt(r, 1).toString());
+                tfEvent.setText(model.getValueAt(r, 2).toString());
+                cbStatus.setSelectedItem(model.getValueAt(r, 3).toString());
+            }
         });
 
         loadData();
@@ -103,28 +137,32 @@ public class KehadiranFrame extends JFrame {
 
     private JTextField field() {
         JTextField tf = new JTextField();
-        tf.setPreferredSize(new Dimension(200, 36));
+        tf.setPreferredSize(new Dimension(200, 34));
         return tf;
     }
 
-    private void addField(JPanel p, GridBagConstraints c, int y,
-                          String label, JTextField f) {
-        c.gridy = y; c.gridx = 0;
-        p.add(new JLabel(label), c);
-        c.gridx = 1; c.gridwidth = 2;
-        p.add(f, c);
+    private void addField(JPanel p, GridBagConstraints c, int y, String l, JTextField f) {
+        c.gridy = y; c.gridx = 0; p.add(new JLabel(l), c);
+        c.gridx = 1; c.gridwidth = 3; p.add(f, c);
         c.gridwidth = 1;
     }
 
-    private JButton primary() {
-        JButton b = new JButton("Simpan");
+    private JButton primary(String t) {
+        JButton b = new JButton(t);
         b.setBackground(new Color(37, 99, 235));
         b.setForeground(Color.WHITE);
         return b;
     }
 
-    private JButton secondary() {
-        JButton b = new JButton("Kembali");
+    private JButton danger(String t) {
+        JButton b = new JButton(t);
+        b.setBackground(new Color(220, 38, 38));
+        b.setForeground(Color.WHITE);
+        return b;
+    }
+
+    private JButton secondary(String t) {
+        JButton b = new JButton(t);
         b.setBackground(new Color(203, 213, 225));
         return b;
     }
