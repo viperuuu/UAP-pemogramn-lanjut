@@ -86,7 +86,7 @@ Aplikasi ini dibuat untuk:
 ## 👨‍💻 Developer
 
 Nama: *(Fawwaz Ainun Hisyam)*  
-Nama: *(Reza rivai)*
+Nama: *(Rezha Rivai)*
 Project: Sistem Manajemen Event dan Kehadiran Peserta
 
 ---
